@@ -1,0 +1,12 @@
+{
+  "dataset_name": "demo_dataset",
+  "dataset_dir": "C:/Users/18153/Documents/New project/dataset_review_platform_backend/demo_data/demo_dataset",
+  "run_name": "demo_run",
+  "output_dir": "C:/Users/18153/Documents/New project/dataset_review_platform_backend/demo_data/demo_run",
+  "total_rows": 2,
+  "static_issue_count": 2,
+  "consistency_issue_count": 0,
+  "model_prediction_rows": 2,
+  "model_flagged_rows": 2,
+  "review_pack_image_count": 2
+}

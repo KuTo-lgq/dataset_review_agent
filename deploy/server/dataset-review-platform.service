@@ -1,0 +1,15 @@
+﻿[Unit]
+Description=Dataset Review Platform
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/dataset-review-agent
+EnvironmentFile=%h/dataset-review-agent/.env
+ExecStart=%h/dataset-review-agent/.venv/bin/python -m uvicorn dataset_review_platform_backend.app.main:app --host 0.0.0.0 --port 8017
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target

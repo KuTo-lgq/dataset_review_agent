@@ -1,0 +1,514 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>数据集验收 Agent</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260527-agent-ready2" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="left-panel">
+        <div class="panel-header">
+          <h1>数据集验收 Agent</h1>
+        </div>
+
+        <section class="panel-card import-section">
+          <div class="section-copy">
+            <h2>接入修后数据集</h2>
+            <p>输入上游模型或人工修正后的数据集目录，平台会自动审计并给出是否可训练的验收结论。</p>
+          </div>
+          <div class="dataset-audit-form">
+            <label for="intakePathInput">目录路径</label>
+            <input
+              id="intakePathInput"
+              type="text"
+              placeholder="例如：C:\path\to\audit_run、C:\path\to\dataset_dir 或 /data/..."
+            />
+
+            <label for="intakeDatasetNameInput">数据集名称（原始数据集可选）</label>
+            <input id="intakeDatasetNameInput" type="text" placeholder="例如：your_dataset_name" />
+
+            <label for="intakeRunNameInput">Run 名称（可选）</label>
+            <input id="intakeRunNameInput" type="text" placeholder="例如：your_dataset_first_audit" />
+
+            <button id="intakeSubmitBtn" class="primary">开始验收</button>
+          </div>
+          <div id="importStatus" class="status-text muted"></div>
+        </section>
+
+        <section class="panel-card runs-section">
+          <div class="section-title-row">
+            <div class="title-stack">
+              <div class="title-line">
+                <h2>验收 Runs</h2>
+                <span id="runsCount" class="count-badge">0</span>
+              </div>
+              <p class="muted section-helper">选择一个 run，继续查看报告、样本和导出结果。</p>
+            </div>
+            <button id="refreshRunsBtn" class="subtle-btn">刷新</button>
+          </div>
+          <div class="list-shell">
+            <div id="runsList" class="runs-list"></div>
+          </div>
+        </section>
+
+        <section class="panel-card runs-section">
+          <div class="section-title-row">
+            <div class="title-stack">
+              <div class="title-line">
+                <h2>验收任务</h2>
+                <span id="tasksCount" class="count-badge">0</span>
+              </div>
+              <p class="muted section-helper">这里查看任务状态、进度、日志，以及新 run 的回流情况。</p>
+            </div>
+            <div class="section-actions">
+              <button id="startAuditBtn" class="primary">验收当前数据集</button>
+              <button id="refreshTasksBtn" class="subtle-btn">刷新</button>
+            </div>
+          </div>
+          <div class="inline-hint">
+            <span class="muted">重新审计会基于当前选中的 run 对应数据集，再发起一轮新的审计任务。</span>
+          </div>
+          <div class="list-shell list-shell-tall">
+            <div id="tasksList" class="runs-list"></div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main-panel">
+        <section class="workspace-topbar">
+          <div class="workspace-title-group">
+            <h2>修后数据集验收</h2>
+            <p>先看 Agent 验收结论，再抽查高风险样本，最后生成中文验收报告。</p>
+          </div>
+          <div id="currentRunSummary" class="run-summary muted">请选择一个 run</div>
+        </section>
+
+        <section class="panel-card agent-panel">
+          <div class="section-title-row">
+            <div>
+              <h3>验收 Agent</h3>
+              <p class="muted section-helper">自动判断修后数据集是否可训练、是否通过验收，以及需要抽查哪些样本。</p>
+            </div>
+            <button id="refreshAgentBtn">刷新 Agent</button>
+          </div>
+          <div class="agent-summary">
+            <span id="agentStateBadge" class="agent-state-badge">未选择 run</span>
+            <p id="agentHeadline" class="agent-headline">选择 run 后生成分析。</p>
+          </div>
+          <div id="agentMetrics" class="agent-metrics"></div>
+          <div class="auto-fix-highlight">
+            <section class="mini-card auto-fix-summary-card">
+              <div class="section-title-row">
+                <div>
+                  <h3>自动修复摘要</h3>
+                  <p class="muted section-helper">静态冲突是否在审计阶段被规则修复或模型看图修复，会在这里汇总。</p>
+                </div>
+              </div>
+              <div id="autoFixSummary" class="summary-block muted">选择 run 后，这里会显示自动修复摘要。</div>
+            </section>
+            <section class="mini-card auto-fix-records-card">
+              <div class="section-title-row">
+                <div>
+                  <h3>模型自动改标记录</h3>
+                  <p class="muted section-helper">这里会列出模型尝试改标的样本、改标前后问题，以及最终是否被接受。</p>
+                </div>
+              </div>
+              <div id="autoFixRecords" class="summary-block muted">选择 run 后，这里会显示模型自动改标记录。</div>
+            </section>
+          </div>
+          <div class="agent-grid">
+            <section class="mini-card">
+              <h3>验收风险</h3>
+              <div id="agentFindings" class="agent-list empty-state">暂无</div>
+            </section>
+            <section class="mini-card">
+              <h3>抽查计划</h3>
+              <div id="agentPlan" class="agent-list empty-state">暂无</div>
+            </section>
+            <section class="mini-card">
+              <h3>验收动作</h3>
+              <div id="agentActions" class="agent-list empty-state">暂无</div>
+            </section>
+          </div>
+        </section>
+
+        <details id="advancedFiltersPanel" class="toolbar panel-card advanced-panel">
+          <summary>高级筛选</summary>
+          <div class="toolbar-head">
+            <div>
+              <h3>样本筛选</h3>
+              <p class="muted">按风险、问题来源、处理状态和关键字筛选样本。</p>
+            </div>
+            <button id="applyFiltersBtn" class="primary">应用筛选</button>
+          </div>
+          <div class="toolbar-grid">
+            <label class="toolbar-group">
+              <span>风险桶</span>
+              <select id="riskBucketFilter">
+                <option value="">全部</option>
+                <option value="bad_label">bad_label</option>
+                <option value="schema_issue">schema_issue</option>
+                <option value="model_call_issue">model_call_issue</option>
+                <option value="model_disagreement">model_disagreement</option>
+                <option value="rule_boundary_issue">rule_boundary_issue</option>
+              </select>
+            </label>
+            <label class="toolbar-group">
+              <span>处理状态</span>
+              <select id="decisionStatusFilter">
+                <option value="">全部</option>
+                <option value="undecided">未处理</option>
+                <option value="decided">已处理</option>
+              </select>
+            </label>
+            <label class="toolbar-group">
+              <span>Split</span>
+              <select id="splitFilter">
+                <option value="">全部</option>
+                <option value="train">train</option>
+                <option value="val">val</option>
+              </select>
+            </label>
+            <label class="toolbar-group">
+              <span>Action</span>
+              <select id="actionFilter">
+                <option value="">全部</option>
+                <option value="keep">keep</option>
+                <option value="replace_label">replace_label</option>
+                <option value="drop">drop</option>
+                <option value="hold">hold</option>
+              </select>
+            </label>
+            <label class="toolbar-group">
+              <span>问题来源</span>
+              <select id="issueSourceFilter">
+                <option value="">全部</option>
+                <option value="static">static</option>
+                <option value="consistency">consistency</option>
+                <option value="model">model</option>
+                <option value="validation">validation</option>
+              </select>
+            </label>
+            <label class="toolbar-group toolbar-search">
+              <span>搜索</span>
+              <input id="searchInput" type="text" placeholder="搜 order_id / scene_id / image / 风险词" />
+            </label>
+          </div>
+        </details>
+
+        <section class="content-grid">
+          <div class="items-pane panel-card">
+            <div class="section-title-row">
+              <div>
+                <h2>高风险抽查样本</h2>
+                <p id="itemsCount" class="muted section-helper"></p>
+              </div>
+              <div class="pagination-row">
+                <button id="prevPageBtn">上一页</button>
+                <span id="pageStatus" class="muted">第 1 / 1 页</span>
+                <button id="nextPageBtn">下一页</button>
+              </div>
+            </div>
+            <div id="queueStatus" class="queue-status hidden">
+              <div>
+                <strong id="queueTitle">当前复核队列</strong>
+                <span id="queueMeta" class="muted"></span>
+              </div>
+              <div class="queue-actions">
+                <button id="queuePrevBtn">上一条</button>
+                <button id="queueNextBtn" class="primary">下一条</button>
+                <button id="queueExitBtn">退出队列</button>
+              </div>
+            </div>
+            <div id="itemsList" class="items-list empty-state">请先导入或发起一个审计 run</div>
+          </div>
+
+          <div class="detail-pane">
+            <section class="panel-card detail-hero">
+              <div class="detail-header">
+                <div>
+                  <h2 id="detailTitle">样本详情</h2>
+                  <p id="detailMeta" class="muted">暂无选中样本</p>
+                </div>
+                <div class="detail-actions">
+                  <label class="toggle-chip" for="cleanViewToggle">
+                    <input id="cleanViewToggle" type="checkbox" checked />
+                    <span>优先显示原图</span>
+                  </label>
+                  <button id="openImageBtn" disabled>查看原图</button>
+                  <button id="exportCleanedBtn" disabled class="primary">导出 cleaned dataset</button>
+                </div>
+              </div>
+
+              <div class="detail-grid">
+                <div class="image-pane">
+                  <img id="detailImage" alt="样本图片" />
+                  <div id="imageEmpty" class="image-empty">选中样本后显示图片</div>
+                </div>
+
+                <div class="snapshot-grid">
+                  <section class="mini-card">
+                    <h3>原标签</h3>
+                    <pre id="goldJson" class="json-block"></pre>
+                  </section>
+                  <section class="mini-card">
+                    <h3>模型辅助结果</h3>
+                    <pre id="predJson" class="json-block"></pre>
+                  </section>
+                </div>
+              </div>
+            </section>
+
+            <details id="reportsPanel" class="panel-card report-panel advanced-panel">
+              <summary>报告与任务</summary>
+              <div class="section-title-row">
+                <div>
+                  <h3>报告与任务</h3>
+                  <p class="muted section-helper">先看审计结论和模型分析建议，再决定人工复核重点。</p>
+                </div>
+                <button id="refreshReportsBtn">刷新报告</button>
+              </div>
+
+              <div class="report-task-grid">
+                <section class="mini-card">
+                  <div class="report-actions">
+                    <button id="showAuditReportBtn" class="tab-btn active">审计报告</button>
+                    <button id="showLlmReportBtn" class="tab-btn">模型报告</button>
+                  </div>
+                  <pre id="reportViewer" class="report-block">选择 run 后，这里会显示审计报告或模型分析报告。</pre>
+                </section>
+
+                <section class="mini-card">
+                  <div class="section-title-row">
+                    <div>
+                      <h3>任务状态</h3>
+                      <p id="selectedTaskTitle" class="muted section-helper"></p>
+                    </div>
+                    <div class="section-actions">
+                      <button id="resumeTaskBtn" disabled>继续运行</button>
+                      <button id="stopTaskBtn" disabled>停止任务</button>
+                      <button id="showTaskLogBtn">查看任务日志</button>
+                    </div>
+                  </div>
+                  <pre id="taskLogViewer" class="report-block">选择左侧任务后，这里会显示任务日志。</pre>
+                </section>
+              </div>
+            </details>
+
+            <details id="issuePanel" class="panel-card advanced-panel">
+              <summary>问题归因</summary>
+              <div class="section-title-row">
+                <div>
+                  <h3>问题归因</h3>
+                  <p class="muted section-helper">把静态问题、一致性问题和模型提示放在一起看，更容易判断问题来源。</p>
+                </div>
+              </div>
+              <div class="issue-grid">
+                <section class="mini-card">
+                  <h3>静态问题</h3>
+                  <div id="staticIssues" class="tag-list"></div>
+                </section>
+                <section class="mini-card">
+                  <h3>一致性问题</h3>
+                  <div id="consistencyIssues" class="tag-list"></div>
+                </section>
+                <section class="mini-card">
+                  <h3>模型问题</h3>
+                  <div id="modelIssues" class="tag-list"></div>
+                </section>
+                <section class="mini-card">
+                  <h3>结构校验问题</h3>
+                  <div id="modelValidationIssues" class="tag-list"></div>
+                </section>
+              </div>
+            </details>
+
+            <details id="historyPanel" class="panel-card form-section advanced-panel">
+              <summary>决策历史</summary>
+              <div class="section-title-row">
+                <div>
+                  <h3>决策历史</h3>
+                  <p id="historyCount" class="muted section-helper"></p>
+                </div>
+              </div>
+              <div id="decisionHistory" class="history-list empty-state">当前样本还没有历史记录。</div>
+            </details>
+
+            <section class="panel-card form-section">
+              <div class="section-title-row">
+                <div>
+                  <h3>人工验收决策</h3>
+                  <p id="savedDecisionHint" class="muted section-helper"></p>
+                </div>
+              </div>
+              <div class="acceptance-actions">
+                <button id="markPassBtn" class="primary">通过并下一条</button>
+                <button id="openLabelEditorBtn">修改标签</button>
+                <button id="generateAcceptanceReportBtn">生成验收报告</button>
+              </div>
+              <div class="form-grid">
+                <label>
+                  <span>验收结论</span>
+                  <select id="decisionInput">
+                    <option value="acceptance_pass">通过</option>
+                    <option value="label_corrected">已改标通过</option>
+                    <option value="hold">暂缓</option>
+                  </select>
+                </label>
+                <label>
+                  <span>处理动作</span>
+                  <select id="actionInput">
+                    <option value="keep">keep</option>
+                    <option value="hold">hold</option>
+                    <option value="drop">drop</option>
+                    <option value="replace_label">replace_label</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Owner</span>
+                  <input id="ownerInput" type="text" placeholder="复核人" />
+                </label>
+                <label class="span-2">
+                  <span>备注</span>
+                  <textarea id="notesInput" rows="2" placeholder="补充说明"></textarea>
+                </label>
+              </div>
+            </section>
+
+            <details id="labelEditorPanel" class="panel-card form-section advanced-panel label-editor-panel">
+              <summary>标签编辑与修正</summary>
+              <div class="section-title-row">
+                <div>
+                  <h3>标签编辑</h3>
+                  <p class="muted section-helper">人工确认错标时，在这里修改标签；保存后导出的验收后数据集会优先使用人工修正标签。</p>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <label>
+                  <span>Status</span>
+                  <select id="statusInput">
+                    <option value="VALID">VALID</option>
+                    <option value="REVIEW">REVIEW</option>
+                    <option value="SKIP">SKIP</option>
+                  </select>
+                </label>
+                <label>
+                  <span>skip_reason</span>
+                  <select id="skipReasonInput">
+                    <option value="OTHER">OTHER</option>
+                    <option value="EMPTY_TABLE">EMPTY_TABLE</option>
+                    <option value="STAFF_ONLY">STAFF_ONLY</option>
+                    <option value="LOW_QUALITY">LOW_QUALITY</option>
+                    <option value="NO_CUSTOMER">NO_CUSTOMER</option>
+                  </select>
+                </label>
+                <label>
+                  <span>l2_primary</span>
+                  <select id="l2PrimaryInput">
+                    <option value="family">family</option>
+                    <option value="social">social</option>
+                    <option value="solo">solo</option>
+                    <option value="couple">couple</option>
+                    <option value="unknown">unknown</option>
+                  </select>
+                </label>
+                <label>
+                  <span>customer_count</span>
+                  <input id="customerCountInput" type="number" min="0" />
+                </label>
+                <label>
+                  <span>group_gender</span>
+                  <select id="groupGenderInput">
+                    <option value="mixed">mixed</option>
+                    <option value="male">male</option>
+                    <option value="female">female</option>
+                    <option value="unknown">unknown</option>
+                  </select>
+                </label>
+                <label>
+                  <span>contains_child</span>
+                  <select id="containsChildInput">
+                    <option value="false">false</option>
+                    <option value="true">true</option>
+                  </select>
+                </label>
+                <label>
+                  <span>child_age_bucket</span>
+                  <select id="childAgeBucketInput">
+                    <option value="none">none</option>
+                    <option value="0_6">0_6</option>
+                    <option value="7_12">7_12</option>
+                  </select>
+                </label>
+                <label>
+                  <span>contains_elder</span>
+                  <select id="containsElderInput">
+                    <option value="false">false</option>
+                    <option value="true">true</option>
+                  </select>
+                </label>
+                <label>
+                  <span>young_group</span>
+                  <select id="youngGroupInput">
+                    <option value="false">false</option>
+                    <option value="true">true</option>
+                  </select>
+                </label>
+                <label class="span-2">
+                  <span>reasoning</span>
+                  <textarea id="reasoningInput" rows="3"></textarea>
+                </label>
+                <label>
+                  <span>confidence</span>
+                  <input id="confidenceInput" type="number" step="0.1" min="0" max="1" />
+                </label>
+              </div>
+
+              <div class="editor-actions">
+                <button id="fillGoldBtn">用原标签填充</button>
+                <button id="fillPredBtn">用模型结果填充</button>
+                <button id="saveLabelCorrectionBtn" class="primary">保存改标并下一条</button>
+                <button id="saveDecisionBtn">保存当前决策</button>
+              </div>
+
+              <div class="preview-block">
+                <div class="section-title-row">
+                  <h3>修正后标签预览</h3>
+                </div>
+                <pre id="correctedPreview" class="json-block"></pre>
+              </div>
+            </details>
+
+            <details id="exportPanel" class="panel-card form-section advanced-panel">
+              <summary>验收报告与导出</summary>
+              <div class="section-title-row">
+                <div>
+                  <h3>验收报告与导出</h3>
+                  <p class="muted section-helper">生成中文验收报告；如有人工修改，也可以导出人工验收后的数据集。</p>
+                </div>
+                <button id="reauditExportBtn" disabled>重新审计导出数据集</button>
+              </div>
+              <div id="exportSummary" class="summary-block muted">导出后这里会显示目录、变更统计和下一步入口。</div>
+            </details>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="imageModal" class="image-modal hidden">
+      <div class="image-modal-backdrop"></div>
+      <div class="image-modal-content">
+        <button id="closeImageModalBtn" class="image-modal-close">关闭</button>
+        <img id="modalImage" alt="样本原图大图" />
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="/static/app.js?v=20260527-agent-ready2"></script>
+  </body>
+</html>
+

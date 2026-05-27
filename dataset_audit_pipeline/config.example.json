@@ -1,0 +1,45 @@
+{
+  "dataset_name": "dataset_frame_example",
+  "dataset_dir": "/data/path/to/dataset_frame_example",
+  "splits": ["train.jsonl", "val.jsonl"],
+  "output_root": "./runs",
+  "run_name": "dataset_frame_example_audit",
+  "consistency": {
+    "fast_window_seconds": 90
+  },
+  "manual_review": {
+    "max_items": 100
+  },
+  "auto_fix": {
+    "enabled": true,
+    "use_rule_fixes": true,
+    "use_model_fixes": true,
+    "max_rounds": 1,
+    "max_rows_per_round": 200,
+    "target_static_issue_count": 100,
+    "target_static_issue_ratio": 0.2,
+    "endpoint": "http://127.0.0.1:8080/api/chat/completions",
+    "model_name": "multimodal-review-model",
+    "api_key_env": "DATASET_AUDIT_API_KEY",
+    "timeout": 120,
+    "max_image_side": 1280,
+    "request_gap_ms": 0,
+    "temperature": 0,
+    "max_tokens": 1024
+  },
+  "model_risk": {
+    "enabled": true,
+    "endpoint": "http://127.0.0.1:8080/api/chat/completions",
+    "model_name": "multimodal-review-model",
+    "api_key_env": "DATASET_AUDIT_API_KEY",
+    "selection": "top_risk",
+    "sample_size": 300,
+    "max_rows": 300,
+    "timeout": 120,
+    "max_image_side": 1280,
+    "request_gap_ms": 0,
+    "temperature": 0,
+    "max_tokens": 2048,
+    "resume": true
+  }
+}

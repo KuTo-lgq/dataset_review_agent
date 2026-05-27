@@ -1,0 +1,22 @@
+﻿__pycache__/
+*.pyc
+*.pyo
+*.log
+askpass.cmd
+.env
+.env.*
+!.env.example
+deploy/server/.env.runtime
+
+# runtime state
+/dataset_review_platform_backend/data/
+/dataset_review_platform_backend/exports/
+/dataset_review_platform_backend/generated_configs/
+/dataset_review_platform_backend/imported_runs/
+/dataset_review_platform_backend/task_logs/
+
+# pipeline runtime artifacts
+/dataset_audit_pipeline/runs/
+
+# packaged release output
+/dist/
