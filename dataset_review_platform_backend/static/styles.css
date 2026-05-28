@@ -71,6 +71,10 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.hidden {
+  display: none !important;
+}
+
 input,
 select,
 textarea {
@@ -563,7 +567,7 @@ textarea {
   padding: 16px;
   overflow: hidden;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
 }
 
 .detail-pane {
@@ -580,6 +584,31 @@ textarea {
 }
 
 .items-pane .pagination-row {
+  justify-content: flex-end;
+}
+
+.queue-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(217, 226, 236, 0.9);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fbfcfe 0%, #f6f8fb 100%);
+}
+
+.queue-status strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.queue-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   justify-content: flex-end;
 }
 
